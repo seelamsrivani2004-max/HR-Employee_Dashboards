@@ -1,0 +1,137 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import api from '../api';
+
+const AdminLogin = () => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpRequired, setOtpRequired] = useState(false);
+    const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        // Enforce the gate
+        const gatePassed = sessionStorage.getItem('admin_gate_passed');
+        if (gatePassed !== 'true') {
+            navigate('/admin');
+        }
+    }, [navigate]);
+
+    const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setMessage('');
+        try {
+            const response = await api.post('/auth/login', { email, password });
+            
+            if (response.data.otpRequired) {
+                setOtpRequired(true);
+                setMessage(response.data.message);
+            } else {
+                // If by some reason it's not an admin but they used this page, 
+                // handle it gracefully or redirect to normal login
+                if (response.data.user.role !== 'Admin') {
+                    setError('This login is for Admin only.');
+                    return;
+                }
+                localStorage.setItem('token', response.data.token);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+                navigate('/dashboard');
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || 'Login failed');
+        }
+    };
+
+    const handleOtpSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const response = await api.post('/auth/verify-admin-otp', { email, code: otp });
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            // Clear session gate after successful login
+            sessionStorage.removeItem('admin_gate_passed');
+            navigate('/dashboard');
+        } catch (err) {
+            setError(err.response?.data?.error || 'OTP verification failed');
+        }
+    };
+
+    return (
+        <div className="auth-container">
+            <div className="auth-card">
+                <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Admin Login</h2>
+                
+                {message && <div style={{ color: 'var(--primary)', marginBottom: '1rem', fontSize: '0.875rem', textAlign: 'center', fontWeight: 'bold' }}>{message}</div>}
+                {error && <div style={{ color: 'var(--danger)', marginBottom: '1rem', fontSize: '0.875rem', textAlign: 'center' }}>{error}</div>}
+
+                {!otpRequired ? (
+                    <form onSubmit={handleLoginSubmit}>
+                        <div className="input-group">
+                            <label>Admin Email</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="admin@company.com"
+                                required
+                            />
+                        </div>
+                        <div className="input-group">
+                            <label>Password</label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                required
+                            />
+                        </div>
+                        <div style={{ textAlign: 'right', marginBottom: '1rem', marginTop: '-0.5rem' }}>
+                            <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600' }}>Forgot password?</Link>
+                        </div>
+                        <button type="submit" className="btn btn-primary">Login</button>
+                    </form>
+                ) : (
+                    <form onSubmit={handleOtpSubmit}>
+                        <p style={{ textAlign: 'center', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            Enter the 6-digit code sent to your email.
+                        </p>
+                        <div className="input-group">
+                            <label>Verification Code</label>
+                            <input
+                                type="text"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                placeholder="123456"
+                                maxLength="6"
+                                required
+                                style={{ textAlign: 'center', letterSpacing: '4px', fontSize: '1.2rem' }}
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-primary">Verify & Login</button>
+                        <button 
+                            type="button" 
+                            className="btn" 
+                            style={{ marginTop: '1rem', background: 'transparent', color: 'var(--primary)', border: '1px solid var(--primary)' }}
+                            onClick={() => setOtpRequired(false)}
+                        >
+                            Back to Login
+                        </button>
+                    </form>
+                )}
+                
+                {!otpRequired && (
+                    <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem' }}>
+                        Not an Admin? <Link to="/login" style={{ color: 'var(--primary)', fontWeight: '600' }}>Employee Login</Link>
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default AdminLogin;
