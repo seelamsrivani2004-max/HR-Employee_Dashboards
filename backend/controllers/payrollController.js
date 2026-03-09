@@ -26,10 +26,10 @@ exports.getEmployeesWithSalaries = async (req, res) => {
 exports.updateSalary = async (req, res) => {
     try {
         const { id } = req.params;
-        const { salary } = req.body;
+        const { baseSalary = 0, bonus = 0, deductions = 0 } = req.body;
 
-        if (salary === undefined || salary === null) {
-            return res.status(400).json({ error: 'Salary value is required' });
+        if (baseSalary === undefined || baseSalary === null) {
+            return res.status(400).json({ error: 'Base Salary value is required' });
         }
 
         const employee = await Employee.findByPk(id);
@@ -37,7 +37,18 @@ exports.updateSalary = async (req, res) => {
             return res.status(404).json({ error: 'Employee not found' });
         }
 
-        await employee.update({ salary });
+        const parsedBase = parseFloat(baseSalary) || 0;
+        const parsedBonus = parseFloat(bonus) || 0;
+        const parsedDeductions = parseFloat(deductions) || 0;
+        const netSalary = parsedBase + parsedBonus - parsedDeductions;
+
+        await employee.update({ 
+            baseSalary: parsedBase, 
+            bonus: parsedBonus, 
+            deductions: parsedDeductions, 
+            netSalary 
+        });
+        
         res.json({ message: 'Salary updated successfully', employee });
     } catch (error) {
         console.error('Update salary error:', error);

@@ -18,6 +18,8 @@ import Profile from './pages/dashboard/Profile';
 import ManageTasks from './pages/dashboard/ManageTasks';
 import Performance from './pages/dashboard/Performance';
 import Payroll from './pages/dashboard/Payroll';
+import Employees from './pages/dashboard/Employees';
+import Projects from './pages/dashboard/Projects';
 import AdminGate from './pages/AdminGate';
 import AdminLogin from './pages/AdminLogin';
 
@@ -57,7 +59,7 @@ function App() {
 
                         {/* Restricted routes for HR/Admin */}
                         <Route element={<RoleBasedRoute allowedRoles={['Admin', 'HR']} />}>
-                            <Route path="employees" element={<PlaceholderPage title="Employees" />} />
+                            <Route path="employees" element={<Employees />} />
                             <Route path="attendance" element={<AllAttendance />} />
                             <Route path="leaves" element={<LeaveRequests />} />
                             <Route path="performance" element={<Performance />} />
@@ -67,7 +69,7 @@ function App() {
 
                         {/* Restricted routes for Admin/Teamlead (Project management) */}
                         <Route element={<RoleBasedRoute allowedRoles={['Admin', 'Teamlead', 'HR']} />}>
-                            <Route path="projects" element={<PlaceholderPage title="Projects" />} />
+                            <Route path="projects" element={<Projects />} />
                             <Route path="tasks" element={<ManageTasks />} />
                         </Route>
                     </Route>

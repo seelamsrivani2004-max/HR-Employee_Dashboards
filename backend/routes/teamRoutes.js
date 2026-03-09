@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken, authorizeRole } = require('../middleware/auth');
 const {
     getAllEmployees,
+    getAllProjects,
     createProject,
     getMyProjects,
     getMyInvitations,
@@ -12,9 +13,10 @@ const {
 } = require('../controllers/teamController');
 
 // Team Lead only
-router.get('/employees', authenticateToken, authorizeRole(['Teamlead', 'Admin']), getAllEmployees);
+router.get('/employees', authenticateToken, authorizeRole(['Teamlead', 'Admin', 'HR']), getAllEmployees);
 router.post('/projects', authenticateToken, authorizeRole(['Teamlead']), createProject);
 router.get('/projects', authenticateToken, authorizeRole(['Teamlead']), getMyProjects);
+router.get('/all-projects', authenticateToken, authorizeRole(['Admin', 'HR']), getAllProjects);
 
 // Employee only
 router.get('/invitations', authenticateToken, authorizeRole(['Employee']), getMyInvitations);

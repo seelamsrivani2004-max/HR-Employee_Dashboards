@@ -27,10 +27,10 @@ const Signup = () => {
         try {
             const response = await api.post('/auth/register', formData);
             setMessage(response.data.message);
-            // Redirect to verification code page
-            setTimeout(() => navigate(`/verify-code?email=${formData.email}`), 2000);
+            // Redirect to verification code page (handles both new reg and resent code)
+            setTimeout(() => navigate(`/verify-code?email=${encodeURIComponent(formData.email)}`), 2000);
         } catch (err) {
-            setError(err.response?.data?.error || 'Registration failed');
+            setError(err.response?.data?.error || 'Registration failed. Please try again.');
         }
     };
 

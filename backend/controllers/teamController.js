@@ -202,8 +202,31 @@ const getIdeas = async (req, res) => {
     }
 };
 
+// ─── HR/Admin: Get ALL projects across all team leads ─────────────────────
+const getAllProjects = async (req, res) => {
+    try {
+        const projects = await Project.findAll({
+            include: [
+                {
+                    model: TeamInvitation,
+                    attributes: ['id', 'employeeId', 'employeeName', 'employeeEmail', 'status']
+                },
+                {
+                    model: ProjectIdea,
+                    attributes: ['id', 'authorName', 'authorRole', 'idea', 'createdAt']
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(projects);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllEmployees,
+    getAllProjects,
     createProject,
     getMyProjects,
     getMyInvitations,

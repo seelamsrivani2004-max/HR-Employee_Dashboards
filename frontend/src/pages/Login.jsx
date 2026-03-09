@@ -10,13 +10,20 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError('');
         try {
             const response = await api.post('/auth/login', { email, password });
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.error || 'Login failed');
+            const data = err.response?.data;
+            if (data?.needsVerification && data?.email) {
+                // Redirect to verify page with message
+                navigate(`/verify-code?email=${encodeURIComponent(data.email)}`);
+                return;
+            }
+            setError(data?.error || 'Login failed. Please try again.');
         }
     };
 

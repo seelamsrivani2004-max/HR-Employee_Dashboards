@@ -8,6 +8,7 @@ const VerifyCode = () => {
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resending, setResending] = useState(false);
     const navigate = useNavigate();
     const email = searchParams.get('email');
 
@@ -28,6 +29,20 @@ const VerifyCode = () => {
             setError(err.response?.data?.error || 'Verification failed. Please check the code.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        setResending(true);
+        setError('');
+        setMessage('');
+        try {
+            const res = await api.post('/auth/resend-verification', { email });
+            setMessage(res.data.message);
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed to resend. Please try again.');
+        } finally {
+            setResending(false);
         }
     };
 
@@ -66,7 +81,7 @@ const VerifyCode = () => {
                 </form>
 
                 <p style={{ marginTop: '1.5rem', fontSize: '0.875rem' }}>
-                    Didn't receive the code? <button onClick={() => alert('Feature coming soon')} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}>Resend</button>
+                    Didn't receive the code? <button onClick={handleResend} disabled={resending} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: '600' }}>{resending ? 'Sending...' : 'Resend'}</button>
                 </p>
 
                 <div style={{ marginTop: '1rem' }}>

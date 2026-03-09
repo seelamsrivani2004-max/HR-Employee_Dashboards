@@ -95,7 +95,7 @@ const Dashboard = () => {
             {/* Sidebar */}
             <div className="sidebar">
                 <div style={{ marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ width: '32px', height: '32px', background: 'var(--primary)', borderRadius: '0.5rem', flexShrink: 0 }} />
+                    <img src="/logo.jpeg" alt="Logo" style={{ width: '40px', height: '40px', borderRadius: '0.5rem', objectFit: 'contain', flexShrink: 0 }} />
                     <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'white' }}>Nova HamoTech</h2>
                 </div>
 

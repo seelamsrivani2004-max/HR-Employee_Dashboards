@@ -24,21 +24,11 @@ const AdminLogin = () => {
         setError('');
         setMessage('');
         try {
-            const response = await api.post('/auth/login', { email, password });
+            const response = await api.post('/auth/admin-login', { email, password });
             
             if (response.data.otpRequired) {
                 setOtpRequired(true);
                 setMessage(response.data.message);
-            } else {
-                // If by some reason it's not an admin but they used this page, 
-                // handle it gracefully or redirect to normal login
-                if (response.data.user.role !== 'Admin') {
-                    setError('This login is for Admin only.');
-                    return;
-                }
-                localStorage.setItem('token', response.data.token);
-                localStorage.setItem('user', JSON.stringify(response.data.user));
-                navigate('/dashboard');
             }
         } catch (err) {
             setError(err.response?.data?.error || 'Login failed');
@@ -81,7 +71,7 @@ const AdminLogin = () => {
                             />
                         </div>
                         <div className="input-group">
-                            <label>Password</label>
+                            <label>Master Password</label>
                             <input
                                 type="password"
                                 value={password}
@@ -90,9 +80,7 @@ const AdminLogin = () => {
                                 required
                             />
                         </div>
-                        <div style={{ textAlign: 'right', marginBottom: '1rem', marginTop: '-0.5rem' }}>
-                            <Link to="/forgot-password" style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: '600' }}>Forgot password?</Link>
-                        </div>
+
                         <button type="submit" className="btn btn-primary">Login</button>
                     </form>
                 ) : (

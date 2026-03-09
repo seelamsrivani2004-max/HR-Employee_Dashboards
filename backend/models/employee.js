@@ -25,7 +25,22 @@ const Employee = sequelize.define('Employee', {
     address: DataTypes.TEXT,
     designation: DataTypes.STRING,
     department: DataTypes.STRING,
-    salary: DataTypes.DECIMAL(10, 2),
+    baseSalary: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    bonus: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    deductions: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    netSalary: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
     joiningDate: DataTypes.STRING,
     status: {
         type: DataTypes.STRING,

@@ -7,7 +7,9 @@ const Payroll = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState(null);
-    const [editSalary, setEditSalary] = useState('');
+    const [editBase, setEditBase] = useState('');
+    const [editBonus, setEditBonus] = useState('');
+    const [editDeductions, setEditDeductions] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
 
@@ -30,13 +32,19 @@ const Payroll = () => {
 
     const handleEditClick = (employee) => {
         setEditingId(employee.id);
-        setEditSalary(employee.salary || '0');
+        setEditBase(employee.baseSalary || '0');
+        setEditBonus(employee.bonus || '0');
+        setEditDeductions(employee.deductions || '0');
     };
 
     const handleSaveSalary = async (id) => {
         setSaving(true);
         try {
-            await api.put(`/payroll/update-salary/₹{id}`, { salary: parseFloat(editSalary) });
+            await api.put(`/payroll/update-salary/${id}`, { 
+                baseSalary: parseFloat(editBase),
+                bonus: parseFloat(editBonus),
+                deductions: parseFloat(editDeductions)
+            });
             setEditingId(null);
             fetchEmployees();
         } catch (err) {
@@ -48,7 +56,7 @@ const Payroll = () => {
     };
 
     const filteredEmployees = employees.filter(emp =>
-        `₹{emp.firstName} ₹{emp.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (emp.User?.employeeId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -99,7 +107,10 @@ const Payroll = () => {
                                 <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Employee</th>
                                 <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>ID / Dept</th>
                                 <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Role</th>
-                                <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Salary (Monthly)</th>
+                                <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Base Salary</th>
+                                <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Bonus</th>
+                                <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Deductions</th>
+                                <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>Net Salary</th>
                                 <th style={{ padding: '1.25rem 1.5rem', fontWeight: '600', color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase', textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
@@ -135,28 +146,33 @@ const Payroll = () => {
                                     </td>
                                     <td style={{ padding: '1rem 1.5rem' }}>
                                         {editingId === emp.id ? (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <span style={{ color: '#64748b' }}>₹</span>
-                                                <input
-                                                    type="number"
-                                                    value={editSalary}
-                                                    onChange={(e) => setEditSalary(e.target.value)}
-                                                    style={{
-                                                        width: '120px',
-                                                        padding: '0.4rem 0.6rem',
-                                                        borderRadius: '0.5rem',
-                                                        border: '1.5px solid var(--primary)',
-                                                        outline: 'none',
-                                                        fontWeight: '600'
-                                                    }}
-                                                    autoFocus
-                                                />
-                                            </div>
+                                            <input type="number" value={editBase} onChange={(e) => setEditBase(e.target.value)} style={{ width: '80px', padding: '0.4rem', borderRadius: '0.3rem', border: '1px solid #cbd5e1', outline: 'none' }} autoFocus />
                                         ) : (
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                <IndianRupee size={16} color="#059669" />
-                                                <span style={{ fontWeight: '700', color: '#059669', fontSize: '1.1rem' }}>
-                                                    {emp.salary ? parseFloat(emp.salary).toLocaleString() : '0'}
+                                            <span style={{ fontWeight: '600', color: '#334155' }}>₹ {emp.baseSalary ? parseFloat(emp.baseSalary).toLocaleString() : '0'}</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '1rem 1.5rem' }}>
+                                        {editingId === emp.id ? (
+                                            <input type="number" value={editBonus} onChange={(e) => setEditBonus(e.target.value)} style={{ width: '80px', padding: '0.4rem', borderRadius: '0.3rem', border: '1px solid #cbd5e1', outline: 'none' }} />
+                                        ) : (
+                                            <span style={{ color: '#059669', fontWeight: '500' }}>+ ₹ {emp.bonus ? parseFloat(emp.bonus).toLocaleString() : '0'}</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '1rem 1.5rem' }}>
+                                        {editingId === emp.id ? (
+                                            <input type="number" value={editDeductions} onChange={(e) => setEditDeductions(e.target.value)} style={{ width: '80px', padding: '0.4rem', borderRadius: '0.3rem', border: '1px solid #cbd5e1', outline: 'none' }} />
+                                        ) : (
+                                            <span style={{ color: '#ef4444', fontWeight: '500' }}>- ₹ {emp.deductions ? parseFloat(emp.deductions).toLocaleString() : '0'}</span>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '1rem 1.5rem' }}>
+                                        {editingId === emp.id ? (
+                                            <span style={{ fontWeight: '700', color: '#0f172a' }}>₹ {((parseFloat(editBase)||0) + (parseFloat(editBonus)||0) - (parseFloat(editDeductions)||0)).toLocaleString()}</span>
+                                        ) : (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                <IndianRupee size={15} color="#0f172a" />
+                                                <span style={{ fontWeight: '700', color: '#0f172a', fontSize: '1.05rem' }}>
+                                                    {emp.netSalary ? parseFloat(emp.netSalary).toLocaleString() : '0'}
                                                 </span>
                                             </div>
                                         )}

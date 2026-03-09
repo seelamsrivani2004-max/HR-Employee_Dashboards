@@ -13,7 +13,28 @@ const register = async (req, res) => {
             return res.status(400).json({ error: 'Employee ID is required' });
         }
 
-        // Check if user or employeeId already exists
+        // Check if user already exists by email
+        const existingUserByEmail = await User.findOne({ where: { email } });
+
+        // If user exists but is NOT verified, resend verification code
+        if (existingUserByEmail && !existingUserByEmail.isVerified) {
+            const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+            await User.update(
+                { verificationCode: newCode },
+                { where: { id: existingUserByEmail.id }, individualHooks: false }
+            );
+            await t.rollback();
+            sendVerificationCode(email, newCode).catch(mailError => {
+                console.error('Failed to resend verification email:', mailError);
+            });
+            return res.status(200).json({
+                message: 'A new verification code has been sent to your email. Please verify to activate your account.',
+                email,
+                resent: true
+            });
+        }
+
+        // Check if user or employeeId already exists (verified accounts)
         const existingUser = await User.findOne({ 
             where: { 
                 [sequelize.Sequelize.Op.or]: [{ email }, { employeeId }] 
@@ -185,12 +206,30 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const user = await User.findOne({ where: { email } });
 
-        if (!user || !(await user.validPassword(password))) {
-            return res.status(401).json({ error: 'Invalid credentials' });
+        if (!user) {
+            return res.status(401).json({ error: 'No account found with this email address.' });
+        }
+
+        const isPasswordValid = await user.validPassword(password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Incorrect password. Please try again.' });
         }
 
         if (!user.isVerified) {
-            return res.status(403).json({ error: 'Please verify your email address before logging in.' });
+            // Resend verification code automatically
+            const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+            await User.update(
+                { verificationCode: newCode },
+                { where: { id: user.id }, individualHooks: false }
+            );
+            sendVerificationCode(email, newCode).catch(mailError => {
+                console.error('Failed to resend verification email:', mailError);
+            });
+            return res.status(403).json({ 
+                error: 'Your email is not verified. A new verification code has been sent to your email.',
+                needsVerification: true,
+                email 
+            });
         }
 
         // --- Admin Security Enhancement ---
@@ -236,6 +275,64 @@ const login = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
+    }
+};
+
+
+const adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // Use environment variable or default fallback
+        const masterPassword = process.env.ADMIN_MASTER_PASSWORD || 'novaadmin123';
+        
+        if (password !== masterPassword) {
+            return res.status(401).json({ error: 'Incorrect Master Password. Please try again.' });
+        }
+
+        // Check if an existing user has this email
+        let user = await User.findOne({ where: { email } });
+
+        if (user) {
+            if (user.role !== 'Admin') {
+                return res.status(403).json({ error: 'This email is already registered as an Employee. Please use a different email for Admin.' });
+            }
+        } else {
+            // Auto-create the Admin account
+            user = await User.create({
+                email,
+                employeeId: 'ADMIN-' + Date.now(),
+                password: crypto.randomBytes(16).toString('hex'), // Random complex password, they won't use it
+                role: 'Admin',
+                firstName: 'Admin',
+                lastName: 'User',
+                isVerified: true
+            });
+        }
+
+        // Generate and send OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await User.update(
+            { verificationCode: otpCode, resetCodeExpiry: otpExpiry },
+            { where: { id: user.id }, individualHooks: false }
+        );
+
+        sendVerificationCode(email, otpCode).catch(mailError => {
+            console.error('Failed to send Admin OTP:', mailError);
+        });
+
+        console.log(`[ADMIN LOGIN] Generated OTP for ${email}: ${otpCode}`);
+
+        return res.status(200).json({ 
+            otpRequired: true, 
+            message: 'Master Password accepted. Admin OTP sent to your email.' 
+        });
+
+    } catch (error) {
+        console.error('adminLogin Error:', error);
+        res.status(500).json({ error: 'Server error during admin login', details: error.message, stack: error.stack });
     }
 };
 
@@ -424,4 +521,38 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { register, login, verifyCode, forgotPassword, verifyResetCode, resetPassword, switchRole, getProfile, verifyAdminOTP, updateProfile };
+const resendVerification = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required.' });
+        }
+
+        const user = await User.findOne({ where: { email } });
+
+        // Always return success to prevent email enumeration
+        if (!user) {
+            return res.json({ message: 'If this email is registered, a verification code has been sent.' });
+        }
+
+        if (user.isVerified) {
+            return res.json({ message: 'Your account is already verified. Please login.' });
+        }
+
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        await User.update(
+            { verificationCode: newCode },
+            { where: { id: user.id }, individualHooks: false }
+        );
+
+        sendVerificationCode(email, newCode).catch(mailError => {
+            console.error('Failed to resend verification email:', mailError);
+        });
+
+        res.json({ message: 'A new verification code has been sent to your email.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = { register, login, adminLogin, verifyCode, forgotPassword, verifyResetCode, resetPassword, switchRole, getProfile, verifyAdminOTP, updateProfile, resendVerification };
