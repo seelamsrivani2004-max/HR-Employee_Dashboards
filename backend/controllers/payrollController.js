@@ -1,4 +1,5 @@
-const { Employee, User } = require('../models');
+const { Employee, User, Salary } = require('../models');
+const crypto = require('crypto');
 
 // @desc    Get all employees with their salary info
 // @route   GET /api/payroll/employees
@@ -48,8 +49,24 @@ exports.updateSalary = async (req, res) => {
             deductions: parsedDeductions, 
             netSalary 
         });
+
+        // Store history in Salaries table
+        const date = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        res.json({ message: 'Salary updated successfully', employee });
+        await Salary.create({
+            id: crypto.randomUUID(),
+            employeeId: employee.id, // employeeId reference in Salaries table points to Employee model id
+            basicSalary: parsedBase,
+            bonus: parsedBonus,
+            deductions: parsedDeductions,
+            netSalary: netSalary,
+            month: monthNames[date.getMonth()],
+            year: date.getFullYear(),
+            status: 'Paid' // Or whatever default matches the business logic
+        });
+        
+        res.json({ message: 'Salary updated and logged successfully', employee });
     } catch (error) {
         console.error('Update salary error:', error);
         res.status(500).json({ error: 'Server error while updating salary' });
